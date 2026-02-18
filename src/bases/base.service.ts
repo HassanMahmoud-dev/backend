@@ -1,34 +1,37 @@
-import { BaseEntity } from "./base.entity";
-import { BaseRepository } from "./base.repository";
+import type { Attributes, CreationAttributes, Model, ModelStatic, WhereOptions } from "sequelize";
 
-export abstract class BaseService<
-	TEntity extends BaseEntity<TId>,
-	TId = number | string,
-	TRepository extends BaseRepository<TEntity, TId> = BaseRepository<TEntity, TId>,
-> {
-	protected readonly repository: TRepository;
+export abstract class BaseService<T extends Model> {
+  constructor(protected readonly model: ModelStatic<T>) {}
 
-	constructor(repository: TRepository) {
-		this.repository = repository;
-	}
+  async findAll(where?: WhereOptions<Attributes<T>>): Promise<T[]> {
+    return this.model.findAll({ where });
+  }
 
-	public async findAll(): Promise<TEntity[]> {
-		return this.repository.findAll();
-	}
+  async findById(id: string | number): Promise<T | null> {
+    return this.model.findByPk(id);
+  }
 
-	public async findById(id: TId): Promise<TEntity | null> {
-		return this.repository.findById(id);
-	}
+  async create(data: CreationAttributes<T>): Promise<T> {
+    // Sequelize create method expects data that matches CreationAttributes
+    return this.model.create(data);
+  }
 
-	public async create(data: Partial<TEntity>): Promise<TEntity> {
-		return this.repository.create(data);
-	}
+  async update(id: string | number, data: Partial<Attributes<T>>): Promise<[number, T[]]> {
+    const result = await this.model.update(data, {
+      where: {
+        [this.model.primaryKeyAttribute]: id,
+      } as WhereOptions<Attributes<T>>,
+      returning: true,
+    });
 
-	public async update(id: TId, data: Partial<TEntity>): Promise<TEntity | null> {
-		return this.repository.update(id, data);
-	}
+    return result as [number, T[]];
+  }
 
-	public async delete(id: TId): Promise<boolean> {
-		return this.repository.delete(id);
-	}
+  async delete(id: string | number): Promise<number> {
+    return this.model.destroy({
+      where: {
+        [this.model.primaryKeyAttribute]: id,
+      } as WhereOptions<Attributes<T>>,
+    });
+  }
 }
