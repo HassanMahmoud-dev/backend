@@ -1,19 +1,11 @@
 import oracledb from "oracledb";
+import { Sequelize } from "sequelize";
 
 import { env } from "./env";
 
-type OraclePoolLike = {
-  close: (drainTime?: number) => Promise<void>;
-};
+let oraclePool: Sequelize | null = null;
 
-type OracleConnectionLike = {
-  execute: (statement: string) => Promise<unknown>;
-  close: () => Promise<void>;
-};
-
-let oraclePool: OraclePoolLike | null = null;
-
-export const initializeOraclePool = async (): Promise<OraclePoolLike | null> => {
+export const initializeOraclePool = async (): Promise<Sequelize | null> => {
   if (oraclePool) {
     return oraclePool;
   }
@@ -23,13 +15,19 @@ export const initializeOraclePool = async (): Promise<OraclePoolLike | null> => 
     return null;
   }
 
-  oraclePool = await oracledb.createPool({
-    user: env.oracle.user,
-    password: env.oracle.password,
-    connectString: env.oracle.connectString,
-    poolMin: env.oracle.poolMin,
-    poolMax: env.oracle.poolMax,
-    poolIncrement: env.oracle.poolIncrement,
+  const connectString = `${env.oracle.host}:${env.oracle.port}/${env.oracle.name}`;
+
+  oraclePool = new Sequelize(env.oracle.name, env.oracle.user, env.oracle.password, {
+    dialect: "oracle" as never,
+    dialectModule: oracledb,
+    logging: false,
+    dialectOptions: {
+      connectString,
+    },
+    pool: {
+      min: env.oracle.poolMin,
+      max: env.oracle.poolMax,
+    },
   });
 
   return oraclePool;
@@ -40,25 +38,17 @@ export const testOracleConnection = async (): Promise<boolean> => {
     return false;
   }
 
-  await initializeOraclePool();
+  const connection = await initializeOraclePool();
 
-  let connection: OracleConnectionLike | undefined;
+  if (!connection) {
+    return false;
+  }
 
   try {
-    connection = await oracledb.getConnection();
-
-    if (!connection) {
-      return false;
-    }
-
-    await connection.execute("SELECT 1 FROM DUAL");
+    await connection.authenticate();
     return true;
   } catch {
     return false;
-  } finally {
-    if (connection) {
-      await connection.close();
-    }
   }
 };
 
@@ -67,6 +57,6 @@ export const closeOraclePool = async (): Promise<void> => {
     return;
   }
 
-  await oraclePool.close(10);
+  await oraclePool.close();
   oraclePool = null;
 };
