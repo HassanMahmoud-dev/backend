@@ -11,20 +11,25 @@ export abstract class BaseService<T extends Model> {
     return this.model.findByPk(id);
   }
 
+  async findOne(where: WhereOptions<Attributes<T>>): Promise<T | null> {
+    return this.model.findOne({ where });
+  }
+
   async create(data: CreationAttributes<T>): Promise<T> {
-    // Sequelize create method expects data that matches CreationAttributes
     return this.model.create(data);
   }
 
-  async update(id: string | number, data: Partial<Attributes<T>>): Promise<[number, T[]]> {
-    const result = await this.model.update(data, {
+  async update(id: string | number, data: Partial<Attributes<T>>): Promise<T | null> {
+    const [affectedCount] = await this.model.update(data, {
       where: {
         [this.model.primaryKeyAttribute]: id,
       } as WhereOptions<Attributes<T>>,
-      returning: true,
     });
 
-    return result as [number, T[]];
+    if (affectedCount > 0) {
+      return this.findById(id);
+    }
+    return null;
   }
 
   async delete(id: string | number): Promise<number> {

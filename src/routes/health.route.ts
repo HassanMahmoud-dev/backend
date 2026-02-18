@@ -1,35 +1,16 @@
-import { Router } from "express";
+import { BaseRoutes } from "@/bases/base.routes";
+import { HealthController } from "@/controllers/health.controller";
 
-import { testOracleConnection } from "@/config/database";
-
-const healthRouter = Router();
-
-healthRouter.get("/health", (_req, res) => {
-  res.status(200).json({
-    ok: true,
-    service: "backend",
-    timestamp: new Date().toISOString(),
-  });
-});
-
-healthRouter.get("/health/db", async (_req, res) => {
-  const isConnected = await testOracleConnection();
-
-  if (!isConnected) {
-    res.status(503).json({
-      ok: false,
-      database: "oracle",
-      message: "Database connection failed",
-      timestamp: new Date().toISOString(),
-    });
-    return;
+class HealthRoutes extends BaseRoutes {
+  constructor(private controller: HealthController = new HealthController()) {
+    super();
+    this.initializeRoutes();
   }
 
-  res.status(200).json({
-    ok: true,
-    database: "oracle",
-    timestamp: new Date().toISOString(),
-  });
-});
+  protected initializeRoutes(): void {
+    this.router.get("/health", this.controller.getSystemHealth);
+    this.router.get("/health/db", this.controller.getDatabaseHealth);
+  }
+}
 
-export default healthRouter;
+export default new HealthRoutes().router;

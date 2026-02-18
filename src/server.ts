@@ -4,7 +4,7 @@ import app from "./app";
 import { closeOraclePool } from "./config/database";
 import { env } from "./config/env";
 import { checkDatabaseConnection } from "./models";
-import { createSocketServer } from "./services/public/socket.service";
+import { createSocketServer } from "./services/socket.service";
 
 const httpServer = createServer(app);
 createSocketServer(httpServer);
