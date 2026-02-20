@@ -1,74 +1,60 @@
-import type { NextFunction, Request, Response } from "express";
+import { Request, Response } from "express";
 import { systemUserService } from "../services/systemUser.service";
+import { asyncHandler } from "../utils/asyncHandler.util";
+import { sendSuccessResponse } from "../utils/response.util";
+import { notFoundError, conflictError } from "../utils/error.util";
 
-export const findAll = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const data = await systemUserService.findAll();
-    return res.status(200).json({ success: true, message: "Success", data });
-  } catch (error) {
-    next(error);
+export const findAll = asyncHandler(async (req: Request, res: Response) => {
+  const data = await systemUserService.findAll();
+  return sendSuccessResponse(res, "Success", data);
+});
+
+export const findOne = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const data = await systemUserService.findById(id as string);
+  if (!data) {
+    throw notFoundError("Not Found");
   }
-};
+  return sendSuccessResponse(res, "Success", data);
+});
 
-export const findOne = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    const data = await systemUserService.findById(id as string);
-    if (!data) {
-      return res.status(404).json({ success: false, message: "Not Found", errors: null });
-    }
-    return res.status(200).json({ success: true, message: "Success", data });
-  } catch (error) {
-    next(error);
+export const create = asyncHandler(async (req: Request, res: Response) => {
+  const data = { ...req.body };
+  if (req.file) {
+    data.AVATAR = `/uploads/profile/${req.file.filename}`;
   }
-};
-
-export const create = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = { ...req.body };
-    if (req.file) {
-      data.AVATAR = `/uploads/profile/${req.file.filename}`;
-    }
     const result = await systemUserService.create(data);
-    return res.status(201).json({ success: true, message: "تمت الإضافة بنجاح", data: result });
+    return sendSuccessResponse(res, "تمت الإضافة بنجاح", result, 201);
   } catch (error) {
-    next(error);
+    if (error instanceof Error && error.message === "Username already exists") {
+      throw conflictError("اسم المستخدم موجود مسبقاً");
+    }
+    throw error;
   }
-};
+});
 
-export const update = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    const data = { ...req.body };
-    if (req.file) {
-      data.AVATAR = `/uploads/profile/${req.file.filename}`;
-    }
-    const result = await systemUserService.update(id as string, data);
-    if (!result) {
-      return res.status(404).json({
-        success: false,
-        message: "لم يتم العثور على المستخدم أو فشل التحديث",
-        errors: null,
-      });
-    }
-    return res.status(200).json({ success: true, message: "تم التحديث بنجاح", data: result });
-  } catch (error) {
-    next(error);
+export const update = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const data = { ...req.body };
+  if (req.file) {
+    data.AVATAR = `/uploads/profile/${req.file.filename}`;
   }
-};
+  const result = await systemUserService.update(id as string, data);
+  if (!result) {
+    throw notFoundError("لم يتم العثور على المستخدم أو فشل التحديث");
+  }
+  return sendSuccessResponse(res, "تم التحديث بنجاح", result);
+});
 
-export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    const deletedCount = await systemUserService.delete(id as string);
-    if (!deletedCount) {
-      return res.status(404).json({ success: false, message: "العنصر غير موجود", errors: null });
-    }
-    return res.status(200).json({ success: true, message: "تم الحذف بنجاح", data: null });
-  } catch (error) {
-    next(error);
+export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const deletedCount = await systemUserService.delete(id as string);
+  if (!deletedCount) {
+    throw notFoundError("العنصر غير موجود");
   }
-};
+  return sendSuccessResponse(res, "تم الحذف بنجاح", null);
+});
 
 export const systemUserController = {
   findAll,

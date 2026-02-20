@@ -1,40 +1,21 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { healthService } from "@/services/health.service";
+import { asyncHandler } from "@/utils/asyncHandler.util";
+import { sendSuccessResponse, sendErrorResponse } from "@/utils/response.util";
 
-export const getSystemHealth = async (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    const status = healthService.getSystemStatus();
-    return res.status(200).json({
-      success: true,
-      message: "Success",
-      data: status,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+export const getSystemHealth = asyncHandler(async (_req: Request, res: Response) => {
+  const status = healthService.getSystemStatus();
+  return sendSuccessResponse(res, "Success", status);
+});
 
-export const getDatabaseHealth = async (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    const status = await healthService.getDatabaseStatus();
-    if (status.ok) {
-      return res.status(200).json({
-        success: true,
-        message: "Success",
-        data: status,
-      });
-    } else {
-      return res.status(503).json({
-        success: false,
-        message: "Database health check failed",
-        errors: null,
-        meta: status,
-      });
-    }
-  } catch (error) {
-    next(error);
+export const getDatabaseHealth = asyncHandler(async (_req: Request, res: Response) => {
+  const status = await healthService.getDatabaseStatus();
+  if (status.ok) {
+    return sendSuccessResponse(res, "Success", status);
+  } else {
+    return sendErrorResponse(res, "Database health check failed", status, 503);
   }
-};
+});
 
 export const healthController = {
   getSystemHealth,

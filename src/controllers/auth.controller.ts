@@ -1,122 +1,87 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { authService } from "../services/auth.service";
+import { asyncHandler } from "../utils/asyncHandler.util";
+import { sendSuccessResponse } from "../utils/response.util";
+import { badRequestError, unauthorizedError } from "../utils/error.util";
 
-export const login = async (req: Request, res: Response, next: NextFunction) => {
+export const login = asyncHandler(async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    throw badRequestError("اسم المستخدم وكلمة المرور مطلوبان");
+  }
+
   try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "اسم المستخدم وكلمة المرور مطلوبان",
-        errors: null,
-      });
-    }
-
     const result = await authService.login(username, password);
-    return res.status(200).json({
-      success: true,
-      message: "تم تسجيل الدخول بنجاح",
-      data: result,
-    });
+    return sendSuccessResponse(res, "تم تسجيل الدخول بنجاح", result);
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "USER_NOT_FOUND") {
-        return res
-          .status(401)
-          .json({ success: false, message: "اسم المستخدم غير موجود", errors: null });
+        throw unauthorizedError("اسم المستخدم غير موجود");
       }
       if (error.message === "INVALID_PASSWORD") {
-        return res.status(401).json({ success: false, message: "كلمة المرور خاطئة", errors: null });
+        throw unauthorizedError("كلمة المرور خاطئة");
       }
-      return res.status(401).json({ success: false, message: error.message, errors: null });
+      throw unauthorizedError(error.message);
     }
-    return next(error);
+    throw error;
   }
-};
+});
 
-export const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
+export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
+  const { refreshToken: refreshTokenVal } = req.body;
+
+  if (!refreshTokenVal) {
+    throw unauthorizedError("عفواً، انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى");
+  }
+
   try {
-    const { refreshToken: refreshTokenVal } = req.body;
-
-    if (!refreshTokenVal) {
-      return res.status(401).json({
-        success: false,
-        message: "عفواً، انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى",
-        errors: null,
-      });
-    }
-
     const result = await authService.refreshToken(refreshTokenVal);
-    return res.status(200).json({
-      success: true,
-      message: "Success",
-      data: result,
-    });
+    return sendSuccessResponse(res, "Success", result);
   } catch (error) {
     if (error instanceof Error) {
-      return res.status(401).json({ success: false, message: error.message, errors: null });
+      throw unauthorizedError(error.message);
     }
-    return next(error);
+    throw error;
   }
-};
+});
 
-export const logout = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { refreshToken: refreshTokenVal } = req.body;
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  const { refreshToken: refreshTokenVal } = req.body;
 
-    if (!refreshTokenVal) {
-      return res.status(400).json({
-        success: false,
-        message: "رمز التحديث مطلوب",
-        errors: null,
-      });
-    }
-
-    await authService.logout(refreshTokenVal);
-    return res.status(200).json({
-      success: true,
-      message: "تم تسجيل الخروج بنجاح",
-      data: null,
-    });
-  } catch (error) {
-    next(error);
+  if (!refreshTokenVal) {
+    throw badRequestError("رمز التحديث مطلوب");
   }
-};
 
-export const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const authReq = req as AuthRequest;
-    if (!authReq.user) {
-      return res.status(401).json({ success: false, message: "غير مصرح", errors: null });
-    }
+  await authService.logout(refreshTokenVal);
+  return sendSuccessResponse(res, "تم تسجيل الخروج بنجاح", null);
+});
 
-    const userId = authReq.user.userId;
-    const { fullName, password, removeAvatar } = req.body;
-    const data: { fullName?: string; password?: string; avatar?: string | null } = {};
-
-    if (fullName) data.fullName = fullName;
-    if (password) data.password = password;
-
-    if (removeAvatar === "true") {
-      data.avatar = null;
-    }
-
-    if (req.file) {
-      data.avatar = `/uploads/profile/${req.file.filename}`;
-    }
-
-    const result = await authService.updateProfile(userId, data);
-    return res.status(200).json({
-      success: true,
-      message: "تم تحديث الملف الشخصي بنجاح",
-      data: result,
-    });
-  } catch (error) {
-    next(error);
+export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  if (!authReq.user) {
+    throw unauthorizedError("غير مصرح");
   }
-};
+
+  const userId = authReq.user.userId;
+  const { fullName, password, removeAvatar } = req.body;
+  const data: { fullName?: string; password?: string; avatar?: string | null } = {};
+
+  if (fullName) data.fullName = fullName;
+  if (password) data.password = password;
+
+  if (removeAvatar === "true") {
+    data.avatar = null;
+  }
+
+  if (req.file) {
+    data.avatar = `/uploads/profile/${req.file.filename}`;
+  }
+
+  const result = await authService.updateProfile(userId, data);
+  return sendSuccessResponse(res, "تم تحديث الملف الشخصي بنجاح", result);
+});
 
 export const authController = {
   login,

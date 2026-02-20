@@ -1,13 +1,9 @@
 import { NextFunction, Request, Response } from "express";
-import { AppError } from "../utils/errors";
+import { AppError } from "../utils/error.util";
+import { sendErrorResponse } from "../utils/response.util";
 
 export const notFoundHandler = (_req: Request, res: Response): void => {
-  res.status(404).json({
-    success: false,
-    message: "Route not found",
-    errors: { code: "NOT_FOUND" },
-    data: null,
-  });
+  sendErrorResponse(res, "Route not found", { code: "NOT_FOUND" }, 404);
 };
 
 export const errorHandler = (
@@ -21,22 +17,17 @@ export const errorHandler = (
 
   const statusCode = (err as AppError).statusCode || 500;
 
-  const errorPayload: Record<string, unknown> = {
-    code: (err as AppError).code || "INTERNAL_SERVER_ERROR",
+  let errorPayload: unknown = (err as AppError).errors || {
+    code: "INTERNAL_SERVER_ERROR",
   };
 
-  if ((err as AppError).details) {
-    errorPayload.details = (err as AppError).details;
-  }
-
   if (process.env.NODE_ENV !== "production") {
-    errorPayload.stack = err.stack;
+    if (typeof errorPayload === "object" && errorPayload !== null) {
+      errorPayload = { ...errorPayload, stack: err.stack };
+    } else {
+      errorPayload = { originalError: errorPayload, stack: err.stack };
+    }
   }
 
-  res.status(statusCode).json({
-    success: false,
-    message: err.message || "Internal server error",
-    errors: errorPayload,
-    data: null,
-  });
+  sendErrorResponse(res, err.message || "Internal server error", errorPayload, statusCode);
 };
