@@ -2,11 +2,36 @@ import { Server as HttpServer } from "node:http";
 import { Server, Socket } from "socket.io";
 import { env } from "@/config/env";
 
-export class SocketService {
-  private io: Server;
+let io: Server | null = null;
 
-  constructor(httpServer: HttpServer) {
-    this.io = new Server(httpServer, {
+function registerPingEvent(socket: Socket): void {
+  socket.on("ping", () => {
+    socket.emit("pong", { timestamp: new Date().toISOString() });
+  });
+}
+
+function registerConnectionEvents(socket: Socket): void {
+  socket.emit("connected", {
+    id: socket.id,
+    timestamp: new Date().toISOString(),
+  });
+
+  registerPingEvent(socket);
+
+  socket.on("disconnect", (reason) => {
+    console.log(`Socket disconnected: ${socket.id} (${reason})`);
+  });
+}
+
+function registerSocketHandlers(server: Server): void {
+  server.on("connection", (socket) => {
+    registerConnectionEvents(socket);
+  });
+}
+
+export const createSocketServer = (httpServer: HttpServer): Server => {
+  if (!io) {
+    io = new Server(httpServer, {
       cors: {
         origin: env.isWildcardCors ? "*" : env.corsOrigin,
         methods: ["GET", "POST"],
@@ -14,39 +39,14 @@ export class SocketService {
       },
     });
 
-    this.registerSocketHandlers();
+    registerSocketHandlers(io);
   }
+  return io;
+};
 
-  public getIO(): Server {
-    return this.io;
+export const getIO = (): Server => {
+  if (!io) {
+    throw new Error("Socket.io not initialized");
   }
-
-  private registerSocketHandlers(): void {
-    this.io.on("connection", (socket) => {
-      this.registerConnectionEvents(socket);
-    });
-  }
-
-  private registerConnectionEvents(socket: Socket): void {
-    socket.emit("connected", {
-      id: socket.id,
-      timestamp: new Date().toISOString(),
-    });
-
-    this.registerPingEvent(socket);
-
-    socket.on("disconnect", (reason) => {
-      console.log(`Socket disconnected: ${socket.id} (${reason})`);
-    });
-  }
-
-  private registerPingEvent(socket: Socket): void {
-    socket.on("ping", () => {
-      socket.emit("pong", { timestamp: new Date().toISOString() });
-    });
-  }
-}
-
-export const createSocketServer = (httpServer: HttpServer): SocketService => {
-  return new SocketService(httpServer);
+  return io;
 };

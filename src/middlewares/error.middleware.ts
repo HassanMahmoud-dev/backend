@@ -1,18 +1,17 @@
 import { NextFunction, Request, Response } from "express";
-
-import { BaseError } from "@/bases/base.error";
-import { BaseResponse } from "@/bases/base.response";
+import { AppError } from "../utils/errors";
 
 export const notFoundHandler = (_req: Request, res: Response): void => {
-  res.status(404).json(
-    BaseResponse.fail("Route not found", {
-      code: "NOT_FOUND",
-    }),
-  );
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+    errors: { code: "NOT_FOUND" },
+    data: null,
+  });
 };
 
 export const errorHandler = (
-  err: Error,
+  err: Error | AppError,
   _req: Request,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -20,23 +19,24 @@ export const errorHandler = (
 ): void => {
   console.error(err);
 
-  if (err instanceof BaseError) {
-    res.status(err.statusCode).json(
-      BaseResponse.fail(err.message, {
-        code: err.code,
-        details: err.details,
-      }),
-    );
-    return;
-  }
+  const statusCode = (err as AppError).statusCode || 500;
 
   const errorPayload: Record<string, unknown> = {
-    code: "INTERNAL_SERVER_ERROR",
+    code: (err as AppError).code || "INTERNAL_SERVER_ERROR",
   };
+
+  if ((err as AppError).details) {
+    errorPayload.details = (err as AppError).details;
+  }
 
   if (process.env.NODE_ENV !== "production") {
     errorPayload.stack = err.stack;
   }
 
-  res.status(500).json(BaseResponse.fail("Internal server error", errorPayload));
+  res.status(statusCode).json({
+    success: false,
+    message: err.message || "Internal server error",
+    errors: errorPayload,
+    data: null,
+  });
 };

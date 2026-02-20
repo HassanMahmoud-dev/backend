@@ -1,32 +1,20 @@
-import { BaseCrudRoutes } from "../bases/base.routes";
+import { Router } from "express";
 import { systemUserController } from "../controllers/systemUser.controller";
 import { authenticateToken, authorizeRole } from "../middlewares/auth.middleware";
-import { SystemUser } from "../models/systemUser.model";
 import { uploadProfile } from "../utils/upload";
 
-class SystemUserRoutes extends BaseCrudRoutes<SystemUser> {
-  constructor() {
-    super(systemUserController, {
-      middlewares: [authenticateToken, authorizeRole(["admin"])],
-    });
-  }
+const router = Router();
 
-  protected override initializeRoutes(): void {
-    const middlewares = this.options.middlewares || [];
+// Apply auth middleware to all routes in this router
+router.use(authenticateToken, authorizeRole(["admin"]));
 
-    if (middlewares.length > 0) {
-      this.router.use(middlewares);
-    }
+router.get("/", systemUserController.findAll);
+router.get("/:id", systemUserController.findOne);
 
-    this.router.get("/", systemUserController.findAll);
-    this.router.get("/:id", systemUserController.findOne);
+// Security: Handle file upload through multer
+router.post("/", uploadProfile.single("AVATAR"), systemUserController.create);
+router.put("/:id", uploadProfile.single("AVATAR"), systemUserController.update);
 
-    // Security: Handle file upload through multer
-    this.router.post("/", uploadProfile.single("AVATAR"), systemUserController.create);
-    this.router.put("/:id", uploadProfile.single("AVATAR"), systemUserController.update);
+router.delete("/:id", systemUserController.delete);
 
-    this.router.delete("/:id", systemUserController.delete);
-  }
-}
-
-export default new SystemUserRoutes().router;
+export default router;

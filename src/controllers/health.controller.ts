@@ -1,26 +1,42 @@
-import { Request, Response } from "express";
-import { HealthService } from "@/services/health.service";
-import { BaseController } from "@/bases/base.controller";
+import { Request, Response, NextFunction } from "express";
+import { healthService } from "@/services/health.service";
 
-export class HealthController extends BaseController {
-  private healthService: HealthService;
-
-  constructor() {
-    super();
-    this.healthService = new HealthService();
+export const getSystemHealth = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const status = healthService.getSystemStatus();
+    return res.status(200).json({
+      success: true,
+      message: "Success",
+      data: status,
+    });
+  } catch (error) {
+    next(error);
   }
+};
 
-  public getSystemHealth = this.execute((_req: Request, res: Response) => {
-    const status = this.healthService.getSystemStatus();
-    this.ok(res, status);
-  });
-
-  public getDatabaseHealth = this.execute(async (_req: Request, res: Response) => {
-    const status = await this.healthService.getDatabaseStatus();
+export const getDatabaseHealth = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const status = await healthService.getDatabaseStatus();
     if (status.ok) {
-      this.ok(res, status);
+      return res.status(200).json({
+        success: true,
+        message: "Success",
+        data: status,
+      });
     } else {
-      this.fail(res, "Database health check failed", 503, undefined, status);
+      return res.status(503).json({
+        success: false,
+        message: "Database health check failed",
+        errors: null,
+        meta: status,
+      });
     }
-  });
-}
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const healthController = {
+  getSystemHealth,
+  getDatabaseHealth,
+};

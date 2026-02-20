@@ -1,78 +1,95 @@
-import { Request, Response, RequestHandler } from "express";
+import { Request, Response, NextFunction } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
-import { authService, AuthService } from "../services/auth.service";
-import { BaseController } from "../bases/base.controller";
+import { authService } from "../services/auth.service";
 
-export class AuthController extends BaseController {
-  constructor(private readonly service: AuthService) {
-    super();
-  }
-
-  public login: RequestHandler = this.execute(async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      this.fail(res, "اسم المستخدم وكلمة المرور مطلوبان");
-      return;
+      return res.status(400).json({
+        success: false,
+        message: "اسم المستخدم وكلمة المرور مطلوبان",
+        errors: null,
+      });
     }
 
-    try {
-      const result = await this.service.login(username, password);
-      this.ok(res, result, "تم تسجيل الدخول بنجاح");
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === "USER_NOT_FOUND") {
-          this.fail(res, "اسم المستخدم غير موجود", 401);
-          return;
-        }
-        if (error.message === "INVALID_PASSWORD") {
-          this.fail(res, "كلمة المرور خاطئة", 401);
-          return;
-        }
-        this.fail(res, error.message, 401);
-        return;
+    const result = await authService.login(username, password);
+    return res.status(200).json({
+      success: true,
+      message: "تم تسجيل الدخول بنجاح",
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "USER_NOT_FOUND") {
+        return res
+          .status(401)
+          .json({ success: false, message: "اسم المستخدم غير موجود", errors: null });
       }
-      this.fail(res, "فشل تسجيل الدخول", 401);
-    }
-  });
-
-  public refreshToken: RequestHandler = this.execute(async (req: Request, res: Response) => {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      this.fail(res, "عفواً، انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى", 401);
-      return;
-    }
-
-    try {
-      const result = await this.service.refreshToken(refreshToken);
-      this.ok(res, result);
-    } catch (error) {
-      if (error instanceof Error) {
-        this.fail(res, error.message, 401);
-      } else {
-        this.fail(res, "رمز تحديث غير صالح", 401);
+      if (error.message === "INVALID_PASSWORD") {
+        return res.status(401).json({ success: false, message: "كلمة المرور خاطئة", errors: null });
       }
+      return res.status(401).json({ success: false, message: error.message, errors: null });
     }
-  });
+    return next(error);
+  }
+};
 
-  public logout: RequestHandler = this.execute(async (req: Request, res: Response) => {
-    const { refreshToken } = req.body;
+export const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { refreshToken: refreshTokenVal } = req.body;
 
-    if (!refreshToken) {
-      this.fail(res, "رمز التحديث مطلوب");
-      return;
+    if (!refreshTokenVal) {
+      return res.status(401).json({
+        success: false,
+        message: "عفواً، انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى",
+        errors: null,
+      });
     }
 
-    await this.service.logout(refreshToken);
-    this.ok(res, null, "تم تسجيل الخروج بنجاح");
-  });
+    const result = await authService.refreshToken(refreshTokenVal);
+    return res.status(200).json({
+      success: true,
+      message: "Success",
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      return res.status(401).json({ success: false, message: error.message, errors: null });
+    }
+    return next(error);
+  }
+};
 
-  public updateProfile: RequestHandler = this.execute(async (req: Request, res: Response) => {
+export const logout = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { refreshToken: refreshTokenVal } = req.body;
+
+    if (!refreshTokenVal) {
+      return res.status(400).json({
+        success: false,
+        message: "رمز التحديث مطلوب",
+        errors: null,
+      });
+    }
+
+    await authService.logout(refreshTokenVal);
+    return res.status(200).json({
+      success: true,
+      message: "تم تسجيل الخروج بنجاح",
+      data: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const authReq = req as AuthRequest;
     if (!authReq.user) {
-      this.fail(res, "غير مصرح", 401);
-      return;
+      return res.status(401).json({ success: false, message: "غير مصرح", errors: null });
     }
 
     const userId = authReq.user.userId;
@@ -82,7 +99,6 @@ export class AuthController extends BaseController {
     if (fullName) data.fullName = fullName;
     if (password) data.password = password;
 
-    // If explicit remove requested
     if (removeAvatar === "true") {
       data.avatar = null;
     }
@@ -91,9 +107,20 @@ export class AuthController extends BaseController {
       data.avatar = `/uploads/profile/${req.file.filename}`;
     }
 
-    const result = await this.service.updateProfile(userId, data);
-    this.ok(res, result, "تم تحديث الملف الشخصي بنجاح");
-  });
-}
+    const result = await authService.updateProfile(userId, data);
+    return res.status(200).json({
+      success: true,
+      message: "تم تحديث الملف الشخصي بنجاح",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-export const authController = new AuthController(authService);
+export const authController = {
+  login,
+  refreshToken,
+  logout,
+  updateProfile,
+};

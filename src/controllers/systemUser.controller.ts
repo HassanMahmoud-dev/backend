@@ -1,35 +1,79 @@
-import { RequestHandler } from "express";
-import { BaseCrudController } from "../bases/base.controller";
-import { SystemUser } from "../models/systemUser.model";
+import type { NextFunction, Request, Response } from "express";
 import { systemUserService } from "../services/systemUser.service";
 
-export class SystemUserController extends BaseCrudController<SystemUser> {
-  constructor() {
-    super(systemUserService);
+export const findAll = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await systemUserService.findAll();
+    return res.status(200).json({ success: true, message: "Success", data });
+  } catch (error) {
+    next(error);
   }
+};
 
-  public override create: RequestHandler = this.execute(async (req, res) => {
+export const findOne = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const data = await systemUserService.findById(id as string);
+    if (!data) {
+      return res.status(404).json({ success: false, message: "Not Found", errors: null });
+    }
+    return res.status(200).json({ success: true, message: "Success", data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const create = async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const data = { ...req.body };
     if (req.file) {
-      // Store the relative path for the frontend
       data.AVATAR = `/uploads/profile/${req.file.filename}`;
     }
-    const result = await this.service.create(data);
-    this.created(res, result, "تمت الإضافة بنجاح");
-  });
+    const result = await systemUserService.create(data);
+    return res.status(201).json({ success: true, message: "تمت الإضافة بنجاح", data: result });
+  } catch (error) {
+    next(error);
+  }
+};
 
-  public override update: RequestHandler = this.execute(async (req, res) => {
+export const update = async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const { id } = req.params;
     const data = { ...req.body };
     if (req.file) {
-      // Store the relative path for the frontend
       data.AVATAR = `/uploads/profile/${req.file.filename}`;
     }
-    const result = await this.service.update(id as string, data);
-    if (this.validateResult(res, result, "لم يتم العثور على المستخدم أو فشل التحديث")) {
-      this.ok(res, result, "تم التحديث بنجاح");
+    const result = await systemUserService.update(id as string, data);
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "لم يتم العثور على المستخدم أو فشل التحديث",
+        errors: null,
+      });
     }
-  });
-}
+    return res.status(200).json({ success: true, message: "تم التحديث بنجاح", data: result });
+  } catch (error) {
+    next(error);
+  }
+};
 
-export const systemUserController = new SystemUserController();
+export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const deletedCount = await systemUserService.delete(id as string);
+    if (!deletedCount) {
+      return res.status(404).json({ success: false, message: "العنصر غير موجود", errors: null });
+    }
+    return res.status(200).json({ success: true, message: "تم الحذف بنجاح", data: null });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const systemUserController = {
+  findAll,
+  findOne,
+  create,
+  update,
+  delete: deleteUser,
+};
