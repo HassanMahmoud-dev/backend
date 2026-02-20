@@ -6,15 +6,19 @@ import helmet from "helmet";
 import { env } from "@/config/env";
 
 export const registerAppMiddlewares = (app: Express): void => {
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
   app.use(
     cors({
       origin: env.isWildcardCors ? true : env.corsOrigin,
       credentials: !env.isWildcardCors,
     }),
   );
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "50mb" }));
   app.use(
     rateLimit({
       windowMs: env.rateLimitWindowMs,

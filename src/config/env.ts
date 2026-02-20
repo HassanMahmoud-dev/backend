@@ -34,4 +34,6 @@ export const env = {
     poolIncrement: Number.isNaN(parsedOraclePoolIncrement) ? 1 : parsedOraclePoolIncrement,
     isConfigured: Boolean(oracleUser && oraclePassword && oracleHost && oraclePort),
   },
+  jwtSecret: process.env.JWT_SECRET ?? "supersecret",
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET ?? "supersecretrefresh",
 };

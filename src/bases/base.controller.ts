@@ -94,22 +94,22 @@ export abstract class BaseCrudController<T extends Model> extends BaseController
 
   public create: RequestHandler = this.execute(async (req, res) => {
     const data = await this.service.create(req.body);
-    this.created(res, data);
+    this.created(res, data, "تمت الإضافة بنجاح");
   });
 
   public update: RequestHandler = this.execute(async (req, res) => {
     const { id } = req.params;
     const data = await this.service.update(id as string, req.body);
-    if (this.validateResult(res, data, "Not Found or Update Failed")) {
-      this.ok(res, data);
+    if (this.validateResult(res, data, "لم يتم العثور على العنصر أو فشل التحديث")) {
+      this.ok(res, data, "تم التحديث بنجاح");
     }
   });
 
   public delete: RequestHandler = this.execute(async (req, res) => {
     const { id } = req.params;
     const deletedCount = await this.service.delete(id as string);
-    if (this.validateResult(res, deletedCount, "Not Found")) {
-      this.ok(res, null, "Deleted successfully");
+    if (this.validateResult(res, deletedCount, "العنصر غير موجود")) {
+      this.ok(res, null, "تم الحذف بنجاح");
     }
   });
 }

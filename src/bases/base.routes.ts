@@ -14,8 +14,8 @@ export abstract class BaseRoutes {
 
 export class BaseCrudRoutes<T extends Model> extends BaseRoutes {
   constructor(
-    private readonly controller: BaseCrudController<T>,
-    private readonly options: { middlewares?: RequestHandler[] } = {},
+    protected readonly controller: BaseCrudController<T>,
+    protected readonly options: { middlewares?: RequestHandler[] } = {},
   ) {
     super();
     this.initializeRoutes();

@@ -1,31 +1,41 @@
-import { initializeOraclePool, testOracleConnection } from "../config/database";
+import { Model, ModelStatic } from "sequelize";
+import { initializeOraclePool } from "../config/database";
+import { initSystemUserModel } from "./systemUser.model";
+import { initRefreshTokenModel } from "./refreshToken.model";
 
-export type ModelClass = new (...args: unknown[]) => unknown;
+export type ModelClass = ModelStatic<Model>;
 
 export const models: ModelClass[] = [];
 
 export const databaseConnectionMessages = {
-	success: "Database connection established successfully.",
-	failure: "Database connection failed.",
-	error: "Error while connecting to database.",
+  success: "Database connection established successfully.",
+  failure: "Database connection failed.",
+  error: "Error while connecting to database.",
 } as const;
 
 export const checkDatabaseConnection = async (): Promise<boolean> => {
-	try {
-		await initializeOraclePool();
-		const isDatabaseConnected = await testOracleConnection();
+  try {
+    const connection = await initializeOraclePool();
 
-		if (isDatabaseConnected) {
-			console.log(databaseConnectionMessages.success);
-		} else {
-			console.error(databaseConnectionMessages.failure);
-		}
+    if (!connection) {
+      console.error(databaseConnectionMessages.failure);
+      return false;
+    }
 
-		return isDatabaseConnected;
-	} catch (error) {
-		console.error(databaseConnectionMessages.error, error);
-		return false;
-	}
+    await connection.authenticate();
+    console.log(databaseConnectionMessages.success);
+
+    initSystemUserModel(connection);
+    initRefreshTokenModel(connection);
+
+    await connection.sync({ force: false });
+    console.log("Database synchronized automatically.");
+
+    return true;
+  } catch (error) {
+    console.error(databaseConnectionMessages.error, error);
+    return false;
+  }
 };
 
 export default models;
