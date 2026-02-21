@@ -76,7 +76,7 @@ const SYSTEM_USERS = sequelize.define(
 );
 
 (SYSTEM_USERS as ModelWithAssociate).associate = (models) => {
-  SYSTEM_USERS.hasMany(models.RefreshToken, {
+  SYSTEM_USERS.hasMany(models.SystemRefreshToken, {
     foreignKey: "USER_ID",
     as: "refreshTokens",
   });

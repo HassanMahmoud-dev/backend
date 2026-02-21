@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import SystemUser from "../models/systemUser.model";
-import RefreshToken from "../models/refreshToken.model";
+import RefreshToken from "../models/systemRefreshToken.model";
 import { getNextId } from "../utils/ID";
 import path from "path";
 import fs from "fs";
@@ -20,6 +20,8 @@ interface SystemUserAttributes {
   USERNAME: string;
   PASSWORD?: string;
   FULL_NAME?: string | null;
+  EMAIL?: string | null;
+  PHONE_NUMBER?: string | null;
   AVATAR?: string | null;
   ROLE?: string | null;
   IS_ACTIVE?: string | null;
@@ -107,6 +109,8 @@ export async function login(
       userId: user.USER_ID,
       username: user.USERNAME,
       fullName: user.FULL_NAME,
+      email: user.EMAIL,
+      phoneNumber: user.PHONE_NUMBER,
       avatar: user.AVATAR,
       role: user.ROLE,
     },
@@ -169,7 +173,12 @@ export async function logout(token: string) {
 
 export async function updateProfile(
   userId: number,
-  data: { fullName?: string; password?: string; avatar?: string | null },
+  data: {
+    fullName?: string;
+    password?: string;
+    avatar?: string | null;
+    phoneNumber?: string;
+  },
 ) {
   const user = (await SystemUser.findByPk(userId)) as unknown as
     | (Model & SystemUserAttributes)
@@ -181,6 +190,10 @@ export async function updateProfile(
 
   if (data.fullName) {
     user.setDataValue("FULL_NAME" as keyof SystemUserAttributes, data.fullName);
+  }
+
+  if (data.phoneNumber !== undefined) {
+    user.setDataValue("PHONE_NUMBER" as keyof SystemUserAttributes, data.phoneNumber);
   }
 
   if (data.password) {
@@ -209,6 +222,8 @@ export async function updateProfile(
     userId: user.USER_ID,
     username: user.USERNAME,
     fullName: user.FULL_NAME,
+    email: user.EMAIL,
+    phoneNumber: user.PHONE_NUMBER,
     avatar: user.AVATAR,
     role: user.ROLE,
   };

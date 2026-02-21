@@ -73,10 +73,16 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
   }
 
   const userId = authReq.user.userId;
-  const { fullName, password, removeAvatar } = req.body;
-  const data: { fullName?: string; password?: string; avatar?: string | null } = {};
+  const { fullName, phoneNumber, password, removeAvatar } = req.body;
+  const data: {
+    fullName?: string;
+    phoneNumber?: string;
+    password?: string;
+    avatar?: string | null;
+  } = {};
 
   if (fullName) data.fullName = fullName;
+  if (phoneNumber) data.phoneNumber = phoneNumber;
   if (password) data.password = password;
 
   if (removeAvatar === "true") {

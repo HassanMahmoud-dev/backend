@@ -2,8 +2,8 @@ import { DataTypes } from "sequelize";
 import sequelize from "@/config/database";
 import { ModelWithAssociate } from "@/types/models";
 
-const RefreshToken = sequelize.define(
-  "REFRESH_TOKENS",
+const SYSTEM_REFRESH_TOKENS = sequelize.define(
+  "SYSTEM_REFRESH_TOKENS",
   {
     TOKEN_ID: {
       type: DataTypes.NUMBER,
@@ -52,18 +52,18 @@ const RefreshToken = sequelize.define(
     },
   },
   {
-    tableName: "REFRESH_TOKENS",
+    tableName: "SYSTEM_REFRESH_TOKENS",
     timestamps: true,
     createdAt: "CREATED_AT",
     updatedAt: "UPDATED_AT",
   },
 );
 
-(RefreshToken as ModelWithAssociate).associate = (models) => {
-  RefreshToken.belongsTo(models.SystemUser, {
+(SYSTEM_REFRESH_TOKENS as ModelWithAssociate).associate = (models) => {
+  SYSTEM_REFRESH_TOKENS.belongsTo(models.SystemUser, {
     foreignKey: "USER_ID",
     as: "user",
   });
 };
 
-export default RefreshToken;
+export default SYSTEM_REFRESH_TOKENS;

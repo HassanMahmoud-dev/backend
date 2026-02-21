@@ -1,4 +1,4 @@
-import RefreshToken from "../models/refreshToken.model";
+import RefreshToken from "../models/systemRefreshToken.model";
 import SystemUser from "../models/systemUser.model";
 import { Op } from "sequelize";
 import { getIO } from "./socket.service";

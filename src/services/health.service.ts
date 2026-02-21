@@ -1,3 +1,4 @@
+import os from "os";
 import { testOracleConnection } from "@/config/database";
 
 function getTimestamp() {
@@ -12,7 +13,35 @@ export function getSystemStatus() {
   };
 }
 
+export async function getSystemMetrics() {
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMem = totalMem - freeMem;
+  const memUsage = (usedMem / totalMem) * 100;
+
+  const cpus = os.cpus();
+  const loadAvg = os.loadavg();
+
+  return {
+    cpu: {
+      model: cpus[0].model,
+      cores: cpus.length,
+      loadAvg: loadAvg[0], // 1 minute load average
+    },
+    memory: {
+      total: totalMem,
+      used: usedMem,
+      free: freeMem,
+      percentage: memUsage,
+    },
+    uptime: os.uptime(),
+    platform: os.platform(),
+    timestamp: getTimestamp(),
+  };
+}
+
 export async function getDatabaseStatus() {
+  // ... existing code ...
   try {
     const isConnected = await testOracleConnection();
 
@@ -36,4 +65,5 @@ export async function getDatabaseStatus() {
 export const healthService = {
   getSystemStatus,
   getDatabaseStatus,
+  getSystemMetrics,
 };
