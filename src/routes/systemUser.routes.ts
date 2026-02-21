@@ -9,6 +9,8 @@ const router = Router();
 router.use(authenticateToken, authorizeRole(["admin"]));
 
 router.get("/", systemUserController.findAll);
+router.get("/connected", systemUserController.getConnectedUsers);
+router.delete("/connected/:tokenId", systemUserController.revokeSession);
 router.get("/:id", systemUserController.findOne);
 
 // Security: Handle file upload through multer

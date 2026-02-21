@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { VerifyErrors } from "jsonwebtoken";
-import { env } from "../config/env";
 
 export interface TokenPayload {
   userId: number;
@@ -21,15 +20,19 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     return;
   }
 
-  jwt.verify(token, env.jwtSecret, (err: VerifyErrors | null, decoded: unknown) => {
-    if (err) {
-      res.status(401).json({ message: "Invalid or expired token" });
-      return;
-    }
+  jwt.verify(
+    token,
+    process.env.JWT_SECRET || "supersecret",
+    (err: VerifyErrors | null, decoded: unknown) => {
+      if (err) {
+        res.status(401).json({ message: "Invalid or expired token" });
+        return;
+      }
 
-    req.user = decoded as TokenPayload;
-    next();
-  });
+      req.user = decoded as TokenPayload;
+      next();
+    },
+  );
 };
 
 export const authorizeRole = (roles: string[]) => {

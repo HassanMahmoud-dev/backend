@@ -1,13 +1,28 @@
 import bcrypt from "bcryptjs";
-import { Attributes, WhereOptions } from "sequelize";
 import { getNextId } from "../utils/ID";
-import { SystemUser, SystemUserCreationAttributes } from "../models/systemUser.model";
+import SystemUser from "../models/systemUser.model";
+import { WhereOptions, Model, Op } from "sequelize";
 import fs from "fs";
 import path from "path";
+import {
+  getPaginationOptions,
+  formatPaginatedResponse,
+  PaginationResult,
+} from "../utils/pagination.util";
+import { getIO } from "./socket.service";
+
+/** الواصفات الخاصة بالمستخدم لنظام TypeScript */
+interface SystemUserAttributes {
+  USER_ID: number;
+  USERNAME: string;
+  AVATAR: string | null;
+  PASSWORD?: string;
+  IS_ACTIVE?: string | null;
+  LAST_LOGIN?: Date | null;
+}
 
 function deleteAvatarFile(avatarPath: string | null | undefined) {
   if (!avatarPath) return;
-  // Check if it's a local file path (starts with /uploads)
   if (avatarPath.startsWith("/uploads")) {
     const fullPath = path.join(process.cwd(), avatarPath);
     if (fs.existsSync(fullPath)) {
@@ -20,39 +35,78 @@ function deleteAvatarFile(avatarPath: string | null | undefined) {
   }
 }
 
-export async function findAll(where?: WhereOptions<Attributes<SystemUser>>): Promise<SystemUser[]> {
-  return SystemUser.findAll({
+export async function findAll(
+  filters: {
+    searchTerm?: string;
+    role?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<PaginationResult<Model>> {
+  const { searchTerm, role, status, page, limit } = filters;
+  const where: Record<string | symbol, unknown> = {};
+
+  if (searchTerm) {
+    where[Op.or] = [
+      { FULL_NAME: { [Op.like]: `%${searchTerm}%` } },
+      { USERNAME: { [Op.like]: `%${searchTerm}%` } },
+      { EMAIL: { [Op.like]: `%${searchTerm}%` } },
+      { PHONE_NUMBER: { [Op.like]: `%${searchTerm}%` } },
+    ];
+  }
+
+  if (role) {
+    where.ROLE = role;
+  }
+
+  if (status) {
+    where.IS_ACTIVE = status;
+  }
+
+  const paginationOptions = getPaginationOptions(page, limit);
+
+  const { rows, count } = await SystemUser.findAndCountAll({
     where,
     attributes: { exclude: ["PASSWORD"] },
+    order: [["CREATED_AT", "DESC"]],
+    limit: paginationOptions.limit,
+    offset: paginationOptions.offset,
   });
+
+  return formatPaginatedResponse<Model>(
+    rows as unknown as Model[],
+    count,
+    paginationOptions.page,
+    paginationOptions.limit,
+  );
 }
 
-export async function findById(id: string | number): Promise<SystemUser | null> {
+export async function findById(id: string | number): Promise<Model | null> {
   return SystemUser.findByPk(id, {
     attributes: { exclude: ["PASSWORD"] },
-  });
+  }) as unknown as Promise<Model | null>;
 }
 
-export async function findOne(
-  where: WhereOptions<Attributes<SystemUser>>,
-): Promise<SystemUser | null> {
-  return SystemUser.findOne({ where });
+export async function findOne(where: WhereOptions): Promise<Model | null> {
+  return SystemUser.findOne({ where }) as unknown as Promise<Model | null>;
 }
 
-export async function create(data: SystemUserCreationAttributes): Promise<SystemUser> {
-  const existingUser = await findOne({ USERNAME: data.USERNAME });
+export async function create(data: Record<string, unknown>): Promise<Model> {
+  const existingUser = await findOne({ USERNAME: data.USERNAME as string });
 
   if (existingUser) {
     throw new Error("Username already exists");
   }
 
-  const hashedPassword = await bcrypt.hash(data.PASSWORD!, 10);
+  const hashedPassword = await bcrypt.hash(data.PASSWORD as string, 10);
   const validId = await getNextId(SystemUser);
 
   const newUser = await SystemUser.create({
     ...data,
     USER_ID: validId,
     PASSWORD: hashedPassword,
+    IS_ACTIVE: data.IS_ACTIVE || "on",
   });
 
   newUser.setDataValue("PASSWORD", undefined as unknown as string);
@@ -61,16 +115,14 @@ export async function create(data: SystemUserCreationAttributes): Promise<System
 
 export async function update(
   id: string | number,
-  data: Partial<Attributes<SystemUser>>,
-): Promise<SystemUser | null> {
-  const oldUser = await findById(id);
+  data: Record<string, unknown>,
+): Promise<Model | null> {
+  const oldUser = (await findById(id)) as unknown as (Model & SystemUserAttributes) | null;
 
-  // If password provided, hash it
   if (data.PASSWORD) {
-    data.PASSWORD = await bcrypt.hash(data.PASSWORD, 10);
+    data.PASSWORD = await bcrypt.hash(data.PASSWORD as string, 10);
   }
 
-  // Handle empty string as null for AVATAR removal
   if (data.AVATAR === "") {
     data.AVATAR = null;
   }
@@ -78,20 +130,25 @@ export async function update(
   const [affectedCount] = await SystemUser.update(data, {
     where: {
       [SystemUser.primaryKeyAttribute]: id,
-    } as WhereOptions<Attributes<SystemUser>>,
+    } as WhereOptions,
   });
 
-  let updatedUser: SystemUser | null = null;
+  let updatedUser: Model | null = null;
   if (affectedCount > 0) {
     updatedUser = await findById(id);
   }
 
-  // If update succeeded, check if we need to delete the old avatar
   if (updatedUser && oldUser?.AVATAR) {
-    // Delete old avatar if data.AVATAR is provided (meaning we intended to change or remove it)
-    // And strict check against old value
     if (data.AVATAR !== undefined && data.AVATAR !== oldUser.AVATAR) {
       deleteAvatarFile(oldUser.AVATAR);
+    }
+  }
+
+  if (affectedCount > 0 && data.IS_ACTIVE === "off" && oldUser?.IS_ACTIVE !== "off") {
+    try {
+      getIO().to(`user_${id}`).emit("force_logout");
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -99,16 +156,24 @@ export async function update(
 }
 
 export async function deleteUser(id: string | number): Promise<number> {
-  const user = await findById(id);
+  const user = (await findById(id)) as unknown as (Model & SystemUserAttributes) | null;
 
   const result = await SystemUser.destroy({
     where: {
       [SystemUser.primaryKeyAttribute]: id,
-    } as WhereOptions<Attributes<SystemUser>>,
+    } as WhereOptions,
   });
 
   if (result > 0 && user?.AVATAR) {
     deleteAvatarFile(user.AVATAR);
+  }
+
+  if (result > 0) {
+    try {
+      getIO().to(`user_${id}`).emit("force_logout");
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   return result;

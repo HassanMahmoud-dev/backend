@@ -1,62 +1,54 @@
-import oracledb from "oracledb";
 import { Sequelize } from "sequelize";
+import "dotenv/config";
+import oracledb from "oracledb";
 
-import { env } from "./env";
-
-let oraclePool: Sequelize | null = null;
-
-export const initializeOraclePool = async (): Promise<Sequelize | null> => {
-  if (oraclePool) {
-    return oraclePool;
-  }
-
-  if (!env.oracle.isConfigured) {
-    console.warn("Oracle database is not configured. Skipping pool initialization.");
-    return null;
-  }
-
-  const connectString = `${env.oracle.host}:${env.oracle.port}/${env.oracle.name}`;
-
-  oraclePool = new Sequelize(env.oracle.name, env.oracle.user, env.oracle.password, {
-    dialect: "oracle" as never,
-    dialectModule: oracledb,
+// إنشاء اتصال Sequelize باستخدام Oracle
+const sequelize = new Sequelize(
+  process.env.ORACLE_NAME || "",
+  process.env.ORACLE_USER || "",
+  process.env.ORACLE_PASSWORD || "",
+  {
+    host: process.env.ORACLE_HOST || "localhost",
+    port: parseInt(process.env.ORACLE_PORT || "1521", 10),
+    dialect: "oracle",
+    timezone: "+02:00",
+    dialectModule: oracledb as object,
     logging: false,
-    dialectOptions: {
-      connectString,
-    },
     pool: {
-      min: env.oracle.poolMin,
-      max: env.oracle.poolMax,
+      max: 10, // Maximum number of connections in pool
+      min: 2, // Minimum number of connections in pool
+      acquire: 30000, // Maximum time (ms) to acquire connection before throwing error
+      idle: 10000, // Maximum time (ms) a connection can be idle before being released
+      evict: 1000, // Time interval (ms) to run eviction to free idle connections
     },
-  });
+  },
+);
 
-  return oraclePool;
-};
-
-export const testOracleConnection = async (): Promise<boolean> => {
-  if (!env.oracle.isConfigured) {
-    return false;
-  }
-
-  const connection = await initializeOraclePool();
-
-  if (!connection) {
-    return false;
-  }
-
+(async () => {
   try {
-    await connection.authenticate();
+    await sequelize.authenticate();
+    console.log("Connection to Oracle database successful.");
+  } catch (error) {
+    console.error("Unable to connect to the Oracle database:", error);
+  }
+})();
+
+export async function testOracleConnection() {
+  try {
+    await sequelize.authenticate();
     return true;
   } catch {
     return false;
   }
-};
+}
 
-export const closeOraclePool = async (): Promise<void> => {
-  if (!oraclePool) {
-    return;
+export const closeOraclePool = async () => {
+  try {
+    await sequelize.close();
+    console.log("Oracle pool closed.");
+  } catch (error) {
+    console.error("Error closing Oracle pool:", error);
   }
-
-  await oraclePool.close();
-  oraclePool = null;
 };
+
+export default sequelize;

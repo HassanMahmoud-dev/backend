@@ -1,9 +1,9 @@
+import "dotenv/config";
 import { createServer } from "node:http";
 
 import app from "./app";
 import { closeOraclePool } from "./config/database";
-import { env } from "./config/env";
-import { checkDatabaseConnection } from "./models";
+import { checkDatabaseConnection, syncDatabase } from "./models";
 import { createSocketServer } from "./services/socket.service";
 
 const httpServer = createServer(app);
@@ -30,9 +30,11 @@ process.on("SIGTERM", shutdown);
 
 const startServer = async (): Promise<void> => {
   await checkDatabaseConnection();
+  await syncDatabase();
 
-  httpServer.listen(env.port, () => {
-    console.log(`Server running on http://192.168.1.13:${env.port}`);
+  const port = Number(process.env.PORT || 5000);
+  httpServer.listen(port, () => {
+    console.log(`Server running on http://192.168.1.13:${port}`);
   });
 };
 

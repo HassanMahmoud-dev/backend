@@ -1,6 +1,5 @@
 import { Server as HttpServer } from "node:http";
 import { Server, Socket } from "socket.io";
-import { env } from "@/config/env";
 
 let io: Server | null = null;
 
@@ -14,6 +13,10 @@ function registerConnectionEvents(socket: Socket): void {
   socket.emit("connected", {
     id: socket.id,
     timestamp: new Date().toISOString(),
+  });
+
+  socket.on("authenticate", (userId: number | string) => {
+    socket.join(`user_${userId}`);
   });
 
   registerPingEvent(socket);
@@ -31,11 +34,14 @@ function registerSocketHandlers(server: Server): void {
 
 export const createSocketServer = (httpServer: HttpServer): Server => {
   if (!io) {
+    const corsOrigin = process.env.CORS_ORIGIN || "*";
+    const isWildcardCors = corsOrigin === "*";
+
     io = new Server(httpServer, {
       cors: {
-        origin: env.isWildcardCors ? "*" : env.corsOrigin,
+        origin: isWildcardCors ? "*" : corsOrigin,
         methods: ["GET", "POST"],
-        credentials: !env.isWildcardCors,
+        credentials: !isWildcardCors,
       },
     });
 

@@ -2,11 +2,20 @@ import { Request, Response } from "express";
 import { systemUserService } from "../services/systemUser.service";
 import { asyncHandler } from "../utils/asyncHandler.util";
 import { sendSuccessResponse } from "../utils/response.util";
-import { notFoundError, conflictError } from "../utils/error.util";
+import { notFoundError, forbiddenError, conflictError } from "../utils/error.util";
+import { AuthRequest } from "../middlewares/auth.middleware";
+import { sessionService } from "../services/session.service";
 
 export const findAll = asyncHandler(async (req: Request, res: Response) => {
-  const data = await systemUserService.findAll();
-  return sendSuccessResponse(res, "Success", data);
+  const { searchTerm, role, status, page, limit } = req.query;
+  const result = await systemUserService.findAll({
+    searchTerm: searchTerm as string,
+    role: role as string,
+    status: status as string,
+    page: page ? parseInt(page as string) : 1,
+    limit: limit ? parseInt(limit as string) : 50,
+  });
+  return sendSuccessResponse(res, "Success", result);
 });
 
 export const findOne = asyncHandler(async (req: Request, res: Response) => {
@@ -47,13 +56,30 @@ export const update = asyncHandler(async (req: Request, res: Response) => {
   return sendSuccessResponse(res, "تم التحديث بنجاح", result);
 });
 
-export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const deletedCount = await systemUserService.delete(id as string);
+export const deleteUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params as { id: string };
+
+  // Prevent user from deleting themselves
+  if (req.user?.userId === parseInt(id)) {
+    throw forbiddenError("لا يمكنك حذف حسابك الخاص");
+  }
+
+  const deletedCount = await systemUserService.delete(id);
   if (!deletedCount) {
     throw notFoundError("العنصر غير موجود");
   }
   return sendSuccessResponse(res, "تم الحذف بنجاح", null);
+});
+
+export const getConnectedUsers = asyncHandler(async (req: Request, res: Response) => {
+  const result = await sessionService.getConnectedUsers();
+  return sendSuccessResponse(res, "Success", result);
+});
+
+export const revokeSession = asyncHandler(async (req: Request, res: Response) => {
+  const { tokenId } = req.params;
+  const result = await sessionService.revokeSession(parseInt(tokenId as string));
+  return sendSuccessResponse(res, "تم تسجيل خروج المستخدم من الجلسة", result);
 });
 
 export const systemUserController = {
@@ -62,4 +88,6 @@ export const systemUserController = {
   create,
   update,
   delete: deleteUser,
+  getConnectedUsers,
+  revokeSession,
 };

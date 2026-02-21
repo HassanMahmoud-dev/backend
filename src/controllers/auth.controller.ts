@@ -12,8 +12,13 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw badRequestError("اسم المستخدم وكلمة المرور مطلوبان");
   }
 
+  const deviceInfo = req.headers["user-agent"] || "Unknown";
+  const ipAddress = (req.headers["x-forwarded-for"] ||
+    req.socket.remoteAddress ||
+    "Unknown") as string;
+
   try {
-    const result = await authService.login(username, password);
+    const result = await authService.login(username, password, deviceInfo, ipAddress);
     return sendSuccessResponse(res, "تم تسجيل الدخول بنجاح", result);
   } catch (error) {
     if (error instanceof Error) {
@@ -22,6 +27,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       }
       if (error.message === "INVALID_PASSWORD") {
         throw unauthorizedError("كلمة المرور خاطئة");
+      }
+      if (error.message === "ACCOUNT_INACTIVE") {
+        throw unauthorizedError("عفواً، هذا الحساب غير نشط حالياً");
       }
       throw unauthorizedError(error.message);
     }

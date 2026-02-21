@@ -1,63 +1,69 @@
-import { DataTypes, Model, Sequelize } from "sequelize";
-import { models } from "./index";
+import { DataTypes } from "sequelize";
+import sequelize from "@/config/database";
+import { ModelWithAssociate } from "@/types/models";
 
-export interface RefreshTokenAttributes {
-  TOKEN_ID?: number;
-  TOKEN: string;
-  USER_ID: number;
-  EXPIRES_AT: Date;
-  CREATED_AT?: Date;
-  UPDATED_AT?: Date;
-}
-
-export class RefreshToken extends Model<RefreshTokenAttributes> implements RefreshTokenAttributes {
-  declare TOKEN_ID: number;
-  declare TOKEN: string;
-  declare USER_ID: number;
-  declare EXPIRES_AT: Date;
-  declare readonly CREATED_AT: Date;
-  declare readonly UPDATED_AT: Date;
-}
-
-export const initRefreshTokenModel = (sequelize: Sequelize) => {
-  RefreshToken.init(
-    {
-      TOKEN_ID: {
-        type: DataTypes.NUMBER,
-        autoIncrement: true,
-        primaryKey: true,
-      },
-      TOKEN: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-      },
-      USER_ID: {
-        type: DataTypes.NUMBER,
-        allowNull: false,
-      },
-      EXPIRES_AT: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-      CREATED_AT: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-      },
-      UPDATED_AT: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
+const RefreshToken = sequelize.define(
+  "REFRESH_TOKENS",
+  {
+    TOKEN_ID: {
+      type: DataTypes.NUMBER,
+      primaryKey: true,
+    },
+    TOKEN: {
+      type: DataTypes.STRING(500),
+      allowNull: false,
+      unique: true,
+    },
+    USER_ID: {
+      type: DataTypes.NUMBER,
+      allowNull: false,
+      references: {
+        model: "SYSTEM_USERS",
+        key: "USER_ID",
       },
     },
-    {
-      sequelize,
-      tableName: "REFRESH_TOKENS",
-      timestamps: true,
-      createdAt: "CREATED_AT",
-      updatedAt: "UPDATED_AT",
+    EXPIRES_AT: {
+      type: DataTypes.DATE,
+      allowNull: false,
     },
-  );
+    DEVICE_INFO: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    IP_ADDRESS: {
+      type: DataTypes.STRING(45),
+      allowNull: true,
+    },
+    CREATED_BY: {
+      type: DataTypes.NUMBER,
+      allowNull: true,
+      references: {
+        model: "SYSTEM_USERS",
+        key: "USER_ID",
+      },
+    },
+    UPDATED_BY: {
+      type: DataTypes.NUMBER,
+      allowNull: true,
+      references: {
+        model: "SYSTEM_USERS",
+        key: "USER_ID",
+      },
+    },
+  },
+  {
+    tableName: "REFRESH_TOKENS",
+    timestamps: true,
+    createdAt: "CREATED_AT",
+    updatedAt: "UPDATED_AT",
+  },
+);
 
-  models.push(RefreshToken);
+(RefreshToken as ModelWithAssociate).associate = (models) => {
+  RefreshToken.belongsTo(models.SystemUser, {
+    foreignKey: "USER_ID",
+    as: "user",
+  });
 };
+
+export default RefreshToken;

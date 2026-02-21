@@ -1,44 +1,60 @@
 import bcrypt from "bcryptjs";
-import { initializeOraclePool, closeOraclePool } from "../config/database";
-import { initSystemUserModel, SystemUser } from "../models/systemUser.model";
-import { getNextId } from "../utils/ID";
+import SystemUser from "@/models/systemUser.model";
+import { getNextId } from "@/utils/ID";
+import { closeOraclePool } from "@/config/database";
+import "dotenv/config";
 
-const seedSystemAdmin = async () => {
+/**
+ * سكريبت لإنشاء مستخدم بصلاحيات أدمن (admin)
+ * يتم استخدامه لتجهيز النظام بالمستخدم الأول
+ */
+async function seedAdmin() {
   try {
-    const sequelize = await initializeOraclePool();
-    if (!sequelize) {
-      console.error("Failed to initialize database connection.");
-      return;
-    }
+    console.log("------------------------------------------");
+    console.log("Starting Admin User Seeding Process...");
+    console.log("------------------------------------------");
 
-    initSystemUserModel(sequelize);
-
-    const adminExists = await SystemUser.findOne({ where: { USERNAME: "admin" } });
-    if (adminExists) {
-      console.log("Admin user already exists.");
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash("admin123", 10);
-
-    const nextId = await getNextId(SystemUser, "USER_ID");
-
-    await SystemUser.create({
-      USER_ID: nextId,
-      FULL_NAME: "Admin",
-      USERNAME: "admin",
-      PASSWORD: hashedPassword,
-      ROLE: "admin",
-      PHONE_NUMBER: "01000000000",
-      EMAIL: "hassan@dev.com",
+    // التحقق مما إذا كان المستخدم موجوداً مسبقاً
+    const existingAdmin = await SystemUser.findOne({
+      where: { USERNAME: "admin" },
     });
 
-    console.log("Admin user seeded successfully.");
-  } catch (error) {
-    console.error("Error seeding admin user:", error);
-  } finally {
-    await closeOraclePool();
-  }
-};
+    if (existingAdmin) {
+      console.log("⚠️  Admin user 'admin' already exists. Skipping seeding.");
+      return;
+    }
 
-seedSystemAdmin();
+    console.log("🔍 Generating next USER_ID...");
+    const userId = await getNextId(SystemUser);
+
+    console.log("🔑 Hashing password...");
+    // يمكن تعيين كلمة المرور الافتراضية هنا أو عبر ملف .env
+    const password = process.env.ADMIN_SEED_PASSWORD || "admin123";
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    console.log("👤 Creating Admin user...");
+    await SystemUser.create({
+      USER_ID: userId,
+      USERNAME: "admin",
+      EMAIL: "admin@madar.com",
+      PASSWORD: hashedPassword,
+      FULL_NAME: "System Administrator",
+      ROLE: "admin",
+      IS_ACTIVE: "on",
+    });
+
+    console.log("✅ Admin user created successfully!");
+    console.log(`   Username: admin`);
+    console.log(`   Password: ${password}`);
+    console.log("------------------------------------------");
+  } catch (error) {
+    console.error("❌ Error seeding admin user:", error);
+  } finally {
+    // إغلاق اتصال قاعدة البيانات للسماح للعملية بالانتهاء
+    await closeOraclePool();
+    process.exit(0);
+  }
+}
+
+// تنفيذ السكريبت
+seedAdmin();
