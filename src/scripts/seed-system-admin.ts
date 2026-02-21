@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import SystemUser from "@/models/systemUser.model";
+import SystemUser from "@/models/system/systemUser.model";
 import { getNextId } from "@/utils/ID";
 import { closeOraclePool } from "@/config/database";
 import "dotenv/config";

@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { AppError } from "../utils/error.util";
 import { sendErrorResponse } from "../utils/response.util";
-import { systemService } from "../services/system.service";
+import { systemService } from "../services/system/system.service";
 
 export const notFoundHandler = (_req: Request, res: Response): void => {
   sendErrorResponse(res, "Route not found", { code: "NOT_FOUND" }, 404);

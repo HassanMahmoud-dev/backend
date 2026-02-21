@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import app from "./app";
 import { closeOraclePool } from "./config/database";
 import { checkDatabaseConnection, syncDatabase } from "./models";
-import { createSocketServer } from "./services/socket.service";
+import { createSocketServer } from "./services/system/socket.service";
 
 const httpServer = createServer(app);
 createSocketServer(httpServer);

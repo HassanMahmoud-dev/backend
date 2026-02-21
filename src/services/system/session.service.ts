@@ -1,5 +1,5 @@
-import RefreshToken from "../models/systemRefreshToken.model";
-import SystemUser from "../models/systemUser.model";
+import RefreshToken from "../../models/system/systemRefreshToken.model";
+import SystemUser from "../../models/system/systemUser.model";
 import { Op } from "sequelize";
 import { getIO } from "./socket.service";
 

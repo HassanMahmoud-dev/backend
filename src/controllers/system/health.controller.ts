@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { healthService } from "@/services/health.service";
+import { healthService } from "@/services/system/health.service";
 import { asyncHandler } from "@/utils/asyncHandler.util";
 import { sendSuccessResponse, sendErrorResponse } from "@/utils/response.util";
 

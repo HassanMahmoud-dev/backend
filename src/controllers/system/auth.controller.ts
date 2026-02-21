@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { authService } from "../services/auth.service";
-import { asyncHandler } from "../utils/asyncHandler.util";
-import { sendSuccessResponse } from "../utils/response.util";
-import { badRequestError, unauthorizedError } from "../utils/error.util";
+import { AuthRequest } from "@/middlewares/auth.middleware";
+import { authService } from "@/services/system/auth.service";
+import { asyncHandler } from "@/utils/asyncHandler.util";
+import { sendSuccessResponse } from "@/utils/response.util";
+import { badRequestError, unauthorizedError } from "@/utils/error.util";
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { username, password } = req.body;

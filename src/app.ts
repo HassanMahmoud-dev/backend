@@ -5,8 +5,7 @@ import path from "path";
 
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 import { registerAppMiddlewares } from "./middlewares/app.middleware";
-import authRoutes from "./routes/auth";
-import systemRoutes from "./routes/system.routes";
+import authRoutes from "./routes/system/authRoutes";
 
 const app = express();
 
@@ -22,10 +21,10 @@ app.use(
   }),
 );
 
-app.use("/api/auth", authRoutes);
-app.use("/api/system", systemRoutes);
+app.use("/api", authRoutes);
 
 app.use(notFoundHandler);
+
 app.use(errorHandler);
 
 export default app;

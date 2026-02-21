@@ -1,10 +1,8 @@
 import sequelize from "@/config/database";
 import type { ModelWithAssociate } from "@/types/models";
-import SystemUser from "./systemUser.model";
-import SystemRefreshToken from "./systemRefreshToken.model";
+import * as system from "./system";
 const models: Record<string, ModelWithAssociate> = {
-  SystemUser,
-  SystemRefreshToken,
+  ...system,
 };
 // Initialize associations
 Object.values(models).forEach((model) => {

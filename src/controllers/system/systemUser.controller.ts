@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { systemUserService } from "../services/systemUser.service";
-import { asyncHandler } from "../utils/asyncHandler.util";
-import { sendSuccessResponse } from "../utils/response.util";
-import { notFoundError, forbiddenError, conflictError } from "../utils/error.util";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { sessionService } from "../services/session.service";
+import { systemUserService } from "@/services/system/systemUser.service";
+import { asyncHandler } from "@/utils/asyncHandler.util";
+import { sendSuccessResponse } from "@/utils/response.util";
+import { notFoundError, forbiddenError, conflictError } from "@/utils/error.util";
+import { AuthRequest } from "@/middlewares/auth.middleware";
+import { sessionService } from "@/services/system/session.service";
 
 export const findAll = asyncHandler(async (req: Request, res: Response) => {
   const { searchTerm, role, status, page, limit } = req.query;

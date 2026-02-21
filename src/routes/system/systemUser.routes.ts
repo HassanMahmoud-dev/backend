@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { systemUserController } from "../controllers/systemUser.controller";
-import { authenticateToken, authorizeRole } from "../middlewares/auth.middleware";
-import { uploadProfile } from "../utils/upload";
+import { systemUserController } from "@/controllers/system/systemUser.controller";
+import { authenticateToken, authorizeRole } from "@/middlewares/auth.middleware";
+import { uploadProfile } from "@/utils/upload";
 
 const router = Router();
 

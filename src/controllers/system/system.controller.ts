@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { systemService } from "@/services/system.service";
-import { healthService } from "@/services/health.service";
+import { systemService } from "@/services/system/system.service";
+import { healthService } from "@/services/system/health.service";
 import { asyncHandler } from "@/utils/asyncHandler.util";
 import { sendSuccessResponse } from "@/utils/response.util";
 

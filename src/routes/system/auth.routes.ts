@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { authController } from "../controllers/auth.controller";
-import { authenticateToken } from "../middlewares/auth.middleware";
-import { uploadProfile } from "../utils/upload";
+import { authController } from "@/controllers/system/auth.controller";
+import { authenticateToken } from "@/middlewares/auth.middleware";
+import { uploadProfile } from "@/utils/upload";
 
 const router = Router();
 

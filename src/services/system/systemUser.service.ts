@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
-import { getNextId } from "../utils/ID";
-import SystemUser from "../models/systemUser.model";
+import { getNextId } from "../../utils/ID";
+import SystemUser from "../../models/system/systemUser.model";
 import { WhereOptions, Model, Op } from "sequelize";
 import fs from "fs";
 import path from "path";
@@ -8,7 +8,7 @@ import {
   getPaginationOptions,
   formatPaginatedResponse,
   PaginationResult,
-} from "../utils/pagination.util";
+} from "../../utils/pagination.util";
 import { getIO } from "./socket.service";
 
 /** الواصفات الخاصة بالمستخدم لنظام TypeScript */

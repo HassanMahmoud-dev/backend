@@ -1,5 +1,5 @@
 import { Router, RequestHandler } from "express";
-import { systemController } from "@/controllers/system.controller";
+import { systemController } from "@/controllers/system/system.controller";
 import { authenticateToken, authorizeRole } from "@/middlewares/auth.middleware";
 
 const router = Router();

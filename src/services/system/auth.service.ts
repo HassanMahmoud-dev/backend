@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import SystemUser from "../models/systemUser.model";
-import RefreshToken from "../models/systemRefreshToken.model";
-import { getNextId } from "../utils/ID";
+import SystemUser from "../../models/system/systemUser.model";
+import RefreshToken from "../../models/system/systemRefreshToken.model";
+import { getNextId } from "../../utils/ID";
 import path from "path";
 import fs from "fs";
 import { Model } from "sequelize";
