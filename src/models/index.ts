@@ -1,8 +1,10 @@
 import sequelize from "@/config/database";
 import type { ModelWithAssociate } from "@/types/models";
 import * as system from "./system";
+import * as modules from "./module/inventory";
 const models: Record<string, ModelWithAssociate> = {
   ...system,
+  ...modules,
 };
 // Initialize associations
 Object.values(models).forEach((model) => {

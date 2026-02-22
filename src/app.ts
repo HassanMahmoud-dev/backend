@@ -6,6 +6,7 @@ import path from "path";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 import { registerAppMiddlewares } from "./middlewares/app.middleware";
 import authRoutes from "./routes/system/authRoutes";
+import inventoryRoutes from "./routes/module/inventory/inventoryRoutes";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(
 );
 
 app.use("/api", authRoutes);
+app.use("/api", inventoryRoutes);
 
 app.use(notFoundHandler);
 
